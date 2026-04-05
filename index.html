@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reserva - Quadra de Areia</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>Quadra de Areia</h1>
+        <p>Reserva para os próximos 7 dias</p>
+    </header>
+
+    <main id="dias-container">
+        </main>
+
+    <div id="modal" class="modal escondido">
+        <div class="modal-conteudo">
+            <h2 id="modal-titulo">Confirmar Reserva</h2>
+            <p id="modal-info"></p>
+            <form id="form-reserva">
+               <input type="text" id="casa" placeholder="Nº da Casa" required>
+                <input type="text" id="nome" placeholder="Seu Nome" required>
+                <div class="botoes">
+                    <button type="button" class="btn-cancelar" onclick="fecharModal()">Cancelar</button>
+                    <button type="submit" class="btn-confirmar">Reservar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
