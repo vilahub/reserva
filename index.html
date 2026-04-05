@@ -1,35 +1,1425 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reserva - Quadra de Areia</title>
-    <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quadra de Areia · Condomínio</title>
+
+<!-- Firebase SDK (modular v12) -->
+<script type="module" id="firebase-init">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
+  import {
+    getFirestore, collection, query, where, getDocs, addDoc, deleteDoc, doc
+  } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey:            "AIzaSyCSnHk7_K_4yxjb28fLlKyKiSGnZLsR3Bs",
+    authDomain:        "quadra-cond.firebaseapp.com",
+    projectId:         "quadra-cond",
+    storageBucket:     "quadra-cond.firebasestorage.app",
+    messagingSenderId: "217912758046",
+    appId:             "1:217912758046:web:b947f4e4adf5519791c30f"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db  = getFirestore(app);
+
+  // Expõe funções para o script principal
+  window._fb = {
+    db,
+    collection, query, where, getDocs, addDoc, deleteDoc, doc
+  };
+  window._fbReady = true;
+  document.dispatchEvent(new Event('firebase-ready'));
+</script>
+
+<!-- Google Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+  /* =========================================================
+     RESET & VARIÁVEIS
+  ========================================================= */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --sand:        #F5F0E8;
+    --sand2:       #EDE6D6;
+    --sand3:       #E2D9C8;
+    --green:       #1A6B45;
+    --green2:      #2D8A5E;
+    --green-light: #E8F5EE;
+    --text:        #1C1C1C;
+    --text2:       #5A5A5A;
+    --white:       #FFFFFF;
+    --accent:      #F0A500;
+    --danger:      #C0392B;
+    --danger-bg:   #FDF0EF;
+    --radius:      14px;
+    --radius-sm:   9px;
+    --shadow:      0 2px 16px rgba(0,0,0,0.07);
+  }
+
+  body {
+    font-family: 'Sora', sans-serif;
+    background: var(--sand);
+    color: var(--text);
+    min-height: 100vh;
+    padding-bottom: 3rem;
+  }
+
+  /* =========================================================
+     LAYOUT GERAL
+  ========================================================= */
+  .app { max-width: 880px; margin: 0 auto; padding: 1.5rem 1rem; }
+
+  /* =========================================================
+     HEADER
+  ========================================================= */
+  header {
+    text-align: center;
+    padding: 2.5rem 0 2rem;
+  }
+
+  .logo-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--green);
+    color: #fff;
+    padding: 6px 18px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 1.2rem;
+  }
+
+  .logo-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.6; transform: scale(0.8); }
+  }
+
+  h1 {
+    font-size: clamp(1.7rem, 5vw, 2.4rem);
+    font-weight: 600;
+    color: var(--green);
+    line-height: 1.2;
+  }
+
+  h1 span { color: var(--text); font-weight: 300; }
+
+  .subtitle {
+    font-size: 13px;
+    color: var(--text2);
+    margin-top: 8px;
+  }
+
+  /* =========================================================
+     TABS
+  ========================================================= */
+  .tabs {
+    display: flex;
+    gap: 6px;
+    background: var(--sand2);
+    border-radius: var(--radius);
+    padding: 5px;
+    margin: 1.5rem 0 1.2rem;
+  }
+
+  .tab {
+    flex: 1;
+    padding: 10px 6px;
+    border: none;
+    background: transparent;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-family: 'Sora', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text2);
+    transition: all 0.2s;
+  }
+
+  .tab:hover { color: var(--green); }
+
+  .tab.active {
+    background: var(--white);
+    color: var(--green);
+    box-shadow: 0 1px 6px rgba(0,0,0,0.09);
+  }
+
+  /* =========================================================
+     CARDS
+  ========================================================= */
+  .card {
+    background: var(--white);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    border: 1px solid rgba(0,0,0,0.06);
+    box-shadow: var(--shadow);
+    margin-bottom: 1rem;
+  }
+
+  .card-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text2);
+    margin-bottom: 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+  }
+
+  /* =========================================================
+     CALENDÁRIO
+  ========================================================= */
+  .cal-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+  }
+
+  .cal-nav button {
+    background: var(--sand);
+    border: 1.5px solid var(--sand2);
+    border-radius: var(--radius-sm);
+    width: 34px;
+    height: 34px;
+    cursor: pointer;
+    font-size: 15px;
+    color: var(--text);
+    transition: all 0.15s;
+  }
+
+  .cal-nav button:hover { background: var(--green-light); border-color: var(--green); }
+
+  .cal-nav span {
+    font-weight: 500;
+    font-size: 15px;
+  }
+
+  .calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 5px;
+  }
+
+  .cal-header {
+    text-align: center;
+    font-size: 10px;
+    color: var(--text2);
+    font-weight: 500;
+    padding: 4px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .cal-day {
+    aspect-ratio: 1;
+    border-radius: var(--radius-sm);
+    border: 1.5px solid transparent;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.15s;
+    background: var(--sand);
+    position: relative;
+    user-select: none;
+  }
+
+  .cal-day:hover:not(.past):not(.empty) {
+    border-color: var(--green);
+    background: var(--green-light);
+  }
+
+  .cal-day.today {
+    border-color: var(--green);
+    background: var(--green);
+    color: #fff;
+  }
+
+  .cal-day.today::before {
+    content: '';
+    width: 4px;
+    height: 4px;
+    background: var(--accent);
+    border-radius: 50%;
+    position: absolute;
+    bottom: 5px;
+  }
+
+  .cal-day.has-res::after {
+    content: '';
+    width: 5px;
+    height: 5px;
+    background: var(--accent);
+    border-radius: 50%;
+    position: absolute;
+    bottom: 4px;
+  }
+
+  .cal-day.today.has-res::after { background: #fff; }
+
+  .cal-day.past {
+    opacity: 0.3;
+    cursor: not-allowed;
+    background: transparent;
+  }
+
+  .cal-day.empty {
+    background: transparent;
+    cursor: default;
+  }
+
+  .cal-day.selected {
+    border-color: var(--accent);
+    background: #FFF8E8;
+    color: var(--text);
+  }
+
+  /* =========================================================
+     SLOTS DE HORÁRIO
+  ========================================================= */
+  .slots-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  @media (min-width: 500px) {
+    .slots-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+
+  .slot {
+    padding: 11px 14px;
+    border-radius: var(--radius-sm);
+    border: 1.5px solid var(--sand2);
+    cursor: pointer;
+    transition: all 0.15s;
+    background: var(--sand);
+  }
+
+  .slot:hover:not(.taken) {
+    border-color: var(--green);
+    background: var(--green-light);
+  }
+
+  .slot.taken {
+    background: var(--sand2);
+    cursor: not-allowed;
+    opacity: 0.65;
+  }
+
+  .slot.selected-slot {
+    border-color: var(--accent);
+    background: #FFF8E8;
+  }
+
+  .slot-time {
+    font-size: 12px;
+    font-family: 'DM Mono', monospace;
+    font-weight: 500;
+    color: var(--green);
+  }
+
+  .slot.taken .slot-time { color: var(--text2); }
+
+  .slot-status {
+    font-size: 11px;
+    color: var(--text2);
+    margin-top: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* =========================================================
+     FORMULÁRIO
+  ========================================================= */
+  .form-group { margin-bottom: 14px; }
+
+  label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text2);
+    display: block;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  input, select {
+    width: 100%;
+    padding: 11px 13px;
+    border: 1.5px solid var(--sand2);
+    border-radius: var(--radius-sm);
+    font-family: 'Sora', sans-serif;
+    font-size: 14px;
+    background: var(--sand);
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s, background 0.15s;
+    appearance: none;
+  }
+
+  input:focus, select:focus {
+    border-color: var(--green);
+    background: var(--white);
+  }
+
+  /* =========================================================
+     BOTÕES
+  ========================================================= */
+  .btn {
+    width: 100%;
+    padding: 13px;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-family: 'Sora', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.15s;
+  }
+
+  .btn:active { transform: scale(0.98); }
+
+  .btn-primary {
+    background: var(--green);
+    color: #fff;
+  }
+
+  .btn-primary:hover { background: var(--green2); }
+
+  .btn-danger {
+    background: transparent;
+    color: var(--danger);
+    border: 1.5px solid var(--danger);
+    margin-top: 10px;
+  }
+
+  .btn-danger:hover { background: var(--danger-bg); }
+
+  .cancel-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--danger);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 9px;
+    border-radius: 6px;
+    font-family: 'Sora', sans-serif;
+  }
+
+  .cancel-btn:hover { background: var(--danger-bg); }
+
+  /* =========================================================
+     AGENDA
+  ========================================================= */
+  .res-list { display: flex; flex-direction: column; gap: 9px; }
+
+  .res-item {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    padding: 13px;
+    background: var(--sand);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--sand2);
+    transition: background 0.15s;
+  }
+
+  .res-item:hover { background: var(--green-light); }
+
+  .res-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: var(--green);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    flex-shrink: 0;
+    text-transform: uppercase;
+  }
+
+  .res-info { flex: 1; min-width: 0; }
+
+  .res-name {
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .res-detail {
+    font-size: 11px;
+    color: var(--text2);
+    font-family: 'DM Mono', monospace;
+    margin-top: 2px;
+  }
+
+  .res-badge {
+    background: var(--green-light);
+    color: var(--green);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* =========================================================
+     REGRAS
+  ========================================================= */
+  .rules-list { display: flex; flex-direction: column; gap: 9px; }
+
+  .rule-item {
+    display: flex;
+    gap: 12px;
+    padding: 12px 14px;
+    background: var(--sand);
+    border-radius: var(--radius-sm);
+    border-left: 3px solid var(--green);
+  }
+
+  .rule-icon {
+    font-size: 16px;
+    width: 24px;
+    text-align: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .rule-text { font-size: 13px; color: var(--text); line-height: 1.6; }
+
+  .rule-text strong {
+    color: var(--green);
+    display: block;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+    font-weight: 600;
+  }
+
+  /* =========================================================
+     ADMIN
+  ========================================================= */
+  .admin-badge {
+    background: #2C3E50;
+    color: #fff;
+    font-size: 10px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 1px;
+  }
+
+  /* =========================================================
+     BANNERS E NOTIFICAÇÕES
+  ========================================================= */
+  .info-banner {
+    background: var(--green-light);
+    border: 1.5px solid var(--green);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    font-size: 13px;
+    color: var(--green);
+    margin-bottom: 1rem;
+    display: none;
+    line-height: 1.5;
+  }
+
+  .info-banner.show { display: block; }
+
+  .warn-banner {
+    background: #FFF8E8;
+    border: 1.5px solid var(--accent);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    font-size: 13px;
+    color: #7A5200;
+    margin-bottom: 1rem;
+    display: none;
+    line-height: 1.5;
+  }
+
+  .warn-banner.show { display: block; }
+
+  .toast {
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--green);
+    color: #fff;
+    padding: 13px 28px;
+    border-radius: 30px;
+    font-size: 13px;
+    font-weight: 500;
+    transition: transform 0.3s cubic-bezier(.34,1.56,.64,1), opacity 0.3s;
+    z-index: 999;
+    pointer-events: none;
+    opacity: 0;
+    white-space: nowrap;
+    font-family: 'Sora', sans-serif;
+  }
+
+  .toast.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+
+  .toast.error { background: var(--danger); }
+
+  /* =========================================================
+     LOADING
+  ========================================================= */
+  .loading {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text2);
+    font-size: 14px;
+  }
+
+  .spinner {
+    width: 28px;
+    height: 28px;
+    border: 3px solid var(--sand2);
+    border-top-color: var(--green);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    margin: 0 auto 1rem;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* =========================================================
+     SECÇÕES
+  ========================================================= */
+  .section { display: none; }
+  .section.active { display: block; }
+
+  .empty-state {
+    text-align: center;
+    padding: 2.5rem 1rem;
+    color: var(--text2);
+    font-size: 13px;
+  }
+
+  .empty-state .big { font-size: 2.5rem; margin-bottom: 0.8rem; }
+
+  /* =========================================================
+     CONFIRMAÇÃO DE RESERVA
+  ========================================================= */
+  .confirm-summary {
+    background: var(--green-light);
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    margin-bottom: 1rem;
+    border: 1.5px solid var(--green);
+  }
+
+  .confirm-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    padding: 4px 0;
+  }
+
+  .confirm-row span:first-child { color: var(--text2); }
+  .confirm-row span:last-child { font-weight: 500; color: var(--green); font-family: 'DM Mono', monospace; }
+
+  /* =========================================================
+     RODAPÉ
+  ========================================================= */
+  footer {
+    text-align: center;
+    margin-top: 3rem;
+    font-size: 11px;
+    color: var(--text2);
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.5px;
+  }
+</style>
 </head>
 <body>
-    <header>
-        <h1>Quadra de Areia</h1>
-        <p>Reserva para os próximos 7 dias</p>
-    </header>
 
-    <main id="dias-container">
-        </main>
+<div class="app">
 
-    <div id="modal" class="modal escondido">
-        <div class="modal-conteudo">
-            <h2 id="modal-titulo">Confirmar Reserva</h2>
-            <p id="modal-info"></p>
-            <form id="form-reserva">
-               <input type="text" id="casa" placeholder="Nº da Casa" required>
-                <input type="text" id="nome" placeholder="Seu Nome" required>
-                <div class="botoes">
-                    <button type="button" class="btn-cancelar" onclick="fecharModal()">Cancelar</button>
-                    <button type="submit" class="btn-confirmar">Reservar</button>
-                </div>
-            </form>
-        </div>
+  <!-- HEADER -->
+  <header>
+    <div class="logo-badge">
+      <div class="logo-dot"></div>
+      Condomínio
+    </div>
+    <h1>Quadra de <span>Areia</span></h1>
+    <p class="subtitle">Reserve seu horário de forma fácil e justa para todos</p>
+  </header>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('reservar', this)">🏐 Reservar</button>
+    <button class="tab" onclick="showTab('agenda', this)">📋 Agenda</button>
+    <button class="tab" onclick="showTab('regras', this)">📌 Regras</button>
+    <button class="tab" onclick="showTab('admin', this)">🔐 Admin</button>
+  </div>
+
+  <!-- ===================== TAB: RESERVAR ===================== -->
+  <div id="tab-reservar" class="section active">
+
+    <!-- Calendário -->
+    <div class="card">
+      <div class="card-title">📅 Escolha o dia</div>
+      <div class="cal-nav">
+        <button onclick="changeMonth(-1)" aria-label="Mês anterior">&#8592;</button>
+        <span id="monthLabel"></span>
+        <button onclick="changeMonth(1)" aria-label="Próximo mês">&#8594;</button>
+      </div>
+      <div class="calendar-grid" id="calGrid"></div>
+      <p style="font-size:11px;color:var(--text2);margin-top:0.8rem;text-align:center">
+        ● Pontos dourados indicam dias com reserva
+      </p>
     </div>
 
-    <script src="script.js"></script>
+    <!-- Horários -->
+    <div class="card" id="slotsCard" style="display:none">
+      <div class="card-title">
+        ⏰ Horários — <span id="selectedDateLabel" style="color:var(--green);font-size:13px;text-transform:none;letter-spacing:0"></span>
+      </div>
+      <div id="slotsLoading" class="loading" style="display:none">
+        <div class="spinner"></div>Carregando horários...
+      </div>
+      <div class="slots-grid" id="slotsGrid"></div>
+    </div>
+
+    <!-- Formulário -->
+    <div class="card" id="formCard" style="display:none">
+      <div class="card-title">🏠 Seus dados</div>
+
+      <!-- Resumo da seleção -->
+      <div class="confirm-summary" id="confirmSummary">
+        <div class="confirm-row"><span>Data</span><span id="sum-data">—</span></div>
+        <div class="confirm-row"><span>Horário</span><span id="sum-hora">—</span></div>
+      </div>
+
+      <div class="info-banner" id="infoBanner"></div>
+      <div class="warn-banner" id="warnBanner"></div>
+
+      <div class="form-group">
+        <label>Número da Casa</label>
+        <input type="text" id="casaInput" placeholder="Ex: 42" maxlength="5" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label>Nome do Morador</label>
+        <input type="text" id="nomeInput" placeholder="Seu nome completo" autocomplete="name">
+      </div>
+      <div class="form-group">
+        <label>Esporte</label>
+        <select id="esporteInput">
+          <option>Beach Tennis</option>
+          <option>Vôlei de Praia</option>
+          <option>Futevôlei</option>
+          <option>Outra atividade</option>
+        </select>
+      </div>
+
+      <button class="btn btn-primary" id="btnConfirmar" onclick="confirmarReserva()">✓ Confirmar Reserva</button>
+      <button class="btn btn-danger" onclick="cancelarSelecao()">Cancelar seleção</button>
+    </div>
+
+  </div>
+
+  <!-- ===================== TAB: AGENDA ===================== -->
+  <div id="tab-agenda" class="section">
+    <div class="card">
+      <div class="card-title">📋 Todas as reservas ativas</div>
+      <div id="agendaLoading" class="loading" style="display:none">
+        <div class="spinner"></div>Carregando agenda...
+      </div>
+      <div class="res-list" id="agendaList"></div>
+    </div>
+  </div>
+
+  <!-- ===================== TAB: REGRAS ===================== -->
+  <div id="tab-regras" class="section">
+    <div class="card">
+      <div class="card-title">📌 Regras de uso da quadra</div>
+      <div class="rules-list">
+        <div class="rule-item">
+          <div class="rule-icon">📅</div>
+          <div class="rule-text">
+            <strong>Antecedência máxima</strong>
+            Reservas podem ser feitas com até <b>7 dias de antecedência</b>. Isso garante que todos tenham oportunidade de usar a quadra.
+          </div>
+        </div>
+        <div class="rule-item">
+          <div class="rule-icon">🏠</div>
+          <div class="rule-text">
+            <strong>Limite por casa</strong>
+            Cada casa pode ter no máximo <b>2 reservas ativas</b> ao mesmo tempo. Para fazer uma nova, é preciso consumir (ou cancelar) uma das anteriores.
+          </div>
+        </div>
+        <div class="rule-item">
+          <div class="rule-icon">⏱</div>
+          <div class="rule-text">
+            <strong>Blocos de 1h30</strong>
+            Cada reserva é de <b>1 hora e 30 minutos</b> em horários fixos predefinidos. Tempo ideal para qualquer esporte de areia.
+          </div>
+        </div>
+        <div class="rule-item">
+          <div class="rule-icon">📆</div>
+          <div class="rule-text">
+            <strong>Um bloco por dia</strong>
+            Cada casa pode reservar <b>no máximo 1 horário por dia</b>. Não é permitido reservar dois blocos no mesmo dia.
+          </div>
+        </div>
+        <div class="rule-item">
+          <div class="rule-icon">❌</div>
+          <div class="rule-text">
+            <strong>Cancelamento</strong>
+            Cancele com pelo menos <b>2 horas de antecedência</b> para liberar o horário a outros moradores. Seja gentil com os vizinhos!
+          </div>
+        </div>
+        <div class="rule-item">
+          <div class="rule-icon">⚠️</div>
+          <div class="rule-text">
+            <strong>No-show (não comparecimento)</strong>
+            Se o morador não aparecer em até <b>15 minutos</b> após o início, a quadra fica liberada para uso espontâneo. Respeite quem reservou!
+          </div>
+        </div>
+        <div class="rule-item">
+          <div class="rule-icon">🤝</div>
+          <div class="rule-text">
+            <strong>Identificação por confiança</strong>
+            Use o número correto da sua casa. O sistema funciona com base na <b>confiança da nossa comunidade</b>. Mal uso pode resultar em bloqueio pelo administrador.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== TAB: ADMIN ===================== -->
+  <div id="tab-admin" class="section">
+
+    <!-- Login -->
+    <div class="card" id="adminLoginCard">
+      <div class="card-title">🔐 Acesso do administrador</div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:1.2rem;line-height:1.6">
+        Área restrita. Apenas o síndico ou administrador autorizado deve acessar.
+      </p>
+      <div class="form-group">
+        <label>Senha</label>
+        <input type="password" id="adminPass" placeholder="Senha do administrador"
+          onkeydown="if(event.key==='Enter')adminLogin()">
+      </div>
+      <button class="btn btn-primary" onclick="adminLogin()">Entrar</button>
+    </div>
+
+    <!-- Painel Admin -->
+    <div id="adminPanel" style="display:none">
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem">
+          <div class="card-title" style="margin:0">
+            🛠 Painel admin &nbsp;<span class="admin-badge">ADM</span>
+          </div>
+          <button class="cancel-btn" onclick="adminLogout()">Sair</button>
+        </div>
+
+        <div id="adminLoading" class="loading" style="display:none">
+          <div class="spinner"></div>Carregando reservas...
+        </div>
+
+        <!-- Bloquear horário -->
+        <div style="background:var(--sand);border-radius:var(--radius-sm);padding:14px;margin-bottom:1rem;border:1px solid var(--sand2)">
+          <p style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">Bloquear horário (manutenção)</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <input type="date" id="blockDate" style="flex:1;min-width:120px">
+            <select id="blockSlot" style="flex:1;min-width:120px">
+              <option value="">Todos os horários</option>
+            </select>
+            <button class="btn btn-primary" style="width:auto;padding:11px 18px;flex-shrink:0" onclick="bloquearHorario()">Bloquear</button>
+          </div>
+        </div>
+
+        <div class="res-list" id="adminList"></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<footer>
+  Quadra de Areia · Sistema de reservas · Uso exclusivo dos moradores
+</footer>
+
+<div class="toast" id="toast" role="alert" aria-live="polite"></div>
+
+<!-- =========================================================
+     JAVASCRIPT PRINCIPAL
+========================================================= -->
+<script>
+/* ────────────────────────────────────────────────
+   CONFIGURAÇÕES DAS REGRAS
+──────────────────────────────────────────────── */
+const CONFIG = {
+  ADMIN_PASS:          "admin123",   // ⚠️ Troque esta senha!
+  MAX_ANTECEDENCIA:    7,            // dias
+  MAX_RESERVAS_ATIVAS: 2,           // por casa
+  SLOTS: [
+    "07:00","08:30","10:00","11:30","13:00",
+    "14:30","16:00","17:30","19:00","20:30"
+  ]
+};
+
+/* ────────────────────────────────────────────────
+   BANCO DE DADOS — Firebase Modular v12
+   O módulo firebase-init (type=module) popula
+   window._fb assim que carrega. O script principal
+   (clássico) aguarda o evento 'firebase-ready'.
+──────────────────────────────────────────────── */
+let _db, _col, _query, _where, _getDocs, _addDoc, _deleteDoc, _docRef;
+let usingLocalStorage = false;
+
+function initFirebase() {
+  if (window._fb) {
+    _db       = window._fb.db;
+    _col      = window._fb.collection;
+    _query    = window._fb.query;
+    _where    = window._fb.where;
+    _getDocs  = window._fb.getDocs;
+    _addDoc   = window._fb.addDoc;
+    _deleteDoc= window._fb.deleteDoc;
+    _docRef   = window._fb.doc;
+  } else {
+    usingLocalStorage = true;
+  }
+}
+
+// Se o módulo já carregou antes deste script, inicializa já
+if (window._fbReady) {
+  initFirebase();
+} else {
+  document.addEventListener('firebase-ready', initFirebase);
+}
+
+/* Fallback: localStorage */
+let localReservas = JSON.parse(localStorage.getItem('quadra_reservas') || '[]');
+function saveLocal() {
+  localStorage.setItem('quadra_reservas', JSON.stringify(localReservas));
+}
+
+/* ────────────────────────────────────────────────
+   ESTADO DA APLICAÇÃO
+──────────────────────────────────────────────── */
+let selectedDate   = null;
+let selectedSlot   = null;
+let currentMonth   = new Date().getMonth();
+let currentYear    = new Date().getFullYear();
+
+/* ────────────────────────────────────────────────
+   UTILITÁRIOS DE DATA
+──────────────────────────────────────────────── */
+function dateToStr(d) {
+  return d.getFullYear() + '-'
+    + String(d.getMonth() + 1).padStart(2, '0') + '-'
+    + String(d.getDate()).padStart(2, '0');
+}
+
+function strToLabel(s) {
+  const [y, m, d] = s.split('-');
+  const months = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const dias   = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+  const date   = new Date(parseInt(y), parseInt(m)-1, parseInt(d));
+  return dias[date.getDay()] + ', ' + parseInt(d) + ' de ' + months[parseInt(m)-1] + ' ' + y;
+}
+
+function nextSlot(s) {
+  const [h, m] = s.split(':').map(Number);
+  const total  = h * 60 + m + 90;
+  return String(Math.floor(total / 60)).padStart(2, '0')
+       + ':' + String(total % 60).padStart(2, '0');
+}
+
+function isHoraValida(slot) {
+  // Checa se cancelamento pode ser feito (2h antes)
+  const now  = new Date();
+  const today = dateToStr(now);
+  if (selectedDate > today) return true;
+  if (selectedDate < today) return false;
+  const [h, m]     = slot.split(':').map(Number);
+  const slotMinutes = h * 60 + m;
+  const nowMinutes  = now.getHours() * 60 + now.getMinutes() + 120; // +2h
+  return slotMinutes > nowMinutes;
+}
+
+/* ────────────────────────────────────────────────
+   TOAST
+──────────────────────────────────────────────── */
+function toast(msg, isError = false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast' + (isError ? ' error' : '');
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+/* ────────────────────────────────────────────────
+   TABS
+──────────────────────────────────────────────── */
+function showTab(tab, el) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  el.classList.add('active');
+  if (tab === 'agenda') renderAgenda();
+  if (tab === 'admin' && document.getElementById('adminPanel').style.display !== 'none') renderAdmin();
+}
+
+/* ────────────────────────────────────────────────
+   BANCO DE DADOS (Firebase ou localStorage)
+──────────────────────────────────────────────── */
+async function getReservas(filters = {}) {
+  if (usingLocalStorage) {
+    let r = [...localReservas];
+    if (filters.date) r = r.filter(x => x.date === filters.date);
+    if (filters.casa) r = r.filter(x => x.casa === filters.casa);
+    if (filters.from) r = r.filter(x => x.date >= filters.from);
+    return r;
+  }
+  try {
+    const colRef = _col(_db, 'reservas');
+    const constraints = [];
+    if (filters.date) constraints.push(_where('date', '==', filters.date));
+    if (filters.casa) constraints.push(_where('casa', '==', filters.casa));
+    if (filters.from) constraints.push(_where('date', '>=', filters.from));
+    const q    = constraints.length ? _query(colRef, ...constraints) : colRef;
+    const snap = await _getDocs(q);
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch(e) {
+    console.error('getReservas:', e);
+    return [];
+  }
+}
+
+async function addReserva(data) {
+  if (usingLocalStorage) {
+    const r = { id: Date.now().toString(), ...data };
+    localReservas.push(r);
+    saveLocal();
+    return r.id;
+  }
+  try {
+    const ref = await _addDoc(_col(_db, 'reservas'), data);
+    return ref.id;
+  } catch(e) {
+    console.error('addReserva:', e);
+    throw e;
+  }
+}
+
+async function deleteReserva(id) {
+  if (usingLocalStorage) {
+    localReservas = localReservas.filter(r => r.id !== id);
+    saveLocal();
+    return;
+  }
+  try {
+    await _deleteDoc(_docRef(_db, 'reservas', id));
+  } catch(e) {
+    console.error('deleteReserva:', e);
+    throw e;
+  }
+}
+
+/* ────────────────────────────────────────────────
+   CALENDÁRIO
+──────────────────────────────────────────────── */
+async function renderCalendar() {
+  const grid  = document.getElementById('calGrid');
+  const label = document.getElementById('monthLabel');
+
+  const months = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
+                  'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const daysHdr = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+
+  label.textContent = months[currentMonth] + ' ' + currentYear;
+  grid.innerHTML = '';
+
+  daysHdr.forEach(d => {
+    const h = document.createElement('div');
+    h.className = 'cal-header';
+    h.textContent = d;
+    grid.appendChild(h);
+  });
+
+  const first  = new Date(currentYear, currentMonth, 1).getDay();
+  const total  = new Date(currentYear, currentMonth + 1, 0).getDate();
+  const today  = new Date(); today.setHours(0,0,0,0);
+  const maxD   = new Date(today); maxD.setDate(today.getDate() + CONFIG.MAX_ANTECEDENCIA);
+
+  // Busca dias com reserva no mês
+  const monthStr = currentYear + '-' + String(currentMonth + 1).padStart(2, '0');
+  const reservasDoMes = await getReservas({ from: monthStr + '-01' });
+  const diasComReserva = new Set(reservasDoMes.map(r => r.date));
+
+  for (let i = 0; i < first; i++) {
+    const e = document.createElement('div');
+    e.className = 'cal-day empty';
+    grid.appendChild(e);
+  }
+
+  for (let d = 1; d <= total; d++) {
+    const date    = new Date(currentYear, currentMonth, d);
+    const dateStr = dateToStr(date);
+    const div     = document.createElement('div');
+    div.className = 'cal-day';
+    div.textContent = d;
+
+    if (date.getTime() === today.getTime()) div.classList.add('today');
+
+    if (date < today || date > maxD) {
+      div.classList.add('past');
+    } else {
+      if (diasComReserva.has(dateStr)) div.classList.add('has-res');
+      if (selectedDate === dateStr)    div.classList.add('selected');
+      div.onclick = () => selectDate(dateStr);
+    }
+
+    grid.appendChild(div);
+  }
+}
+
+function changeMonth(dir) {
+  currentMonth += dir;
+  if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+  if (currentMonth < 0)  { currentMonth = 11; currentYear--; }
+  renderCalendar();
+}
+
+/* ────────────────────────────────────────────────
+   SELEÇÃO DE DATA
+──────────────────────────────────────────────── */
+async function selectDate(dateStr) {
+  selectedDate = dateStr;
+  selectedSlot = null;
+  document.getElementById('slotsCard').style.display = 'block';
+  document.getElementById('formCard').style.display  = 'none';
+  document.getElementById('selectedDateLabel').textContent = strToLabel(dateStr);
+  renderCalendar();
+  await renderSlots();
+}
+
+/* ────────────────────────────────────────────────
+   HORÁRIOS
+──────────────────────────────────────────────── */
+async function renderSlots() {
+  const grid    = document.getElementById('slotsGrid');
+  const loading = document.getElementById('slotsLoading');
+
+  grid.innerHTML = '';
+  loading.style.display = 'block';
+
+  const reservasDia = await getReservas({ date: selectedDate });
+  loading.style.display = 'none';
+
+  CONFIG.SLOTS.forEach(slot => {
+    const taken   = reservasDia.find(r => r.slot === slot);
+    const bloq    = reservasDia.find(r => r.slot === slot && r.bloqueado);
+    const div     = document.createElement('div');
+    div.className = 'slot' + (taken ? ' taken' : '');
+
+    let statusText = 'Disponível';
+    if (bloq)    statusText = '🔒 Bloqueado';
+    else if (taken) statusText = 'Casa ' + taken.casa + ' · ' + taken.nome;
+
+    div.innerHTML = `
+      <div class="slot-time">${slot} – ${nextSlot(slot)}</div>
+      <div class="slot-status">${statusText}</div>
+    `;
+
+    if (!taken && selectedSlot === slot) div.classList.add('selected-slot');
+
+    if (!taken) {
+      div.onclick = () => selectSlot(slot, div);
+    }
+
+    grid.appendChild(div);
+  });
+}
+
+function selectSlot(slot, div) {
+  selectedSlot = slot;
+  document.querySelectorAll('.slot').forEach(s => s.classList.remove('selected-slot'));
+  div.classList.add('selected-slot');
+  document.getElementById('formCard').style.display  = 'block';
+  document.getElementById('infoBanner').classList.remove('show');
+  document.getElementById('warnBanner').classList.remove('show');
+
+  // Atualiza resumo
+  document.getElementById('sum-data').textContent = strToLabel(selectedDate);
+  document.getElementById('sum-hora').textContent  = slot + ' – ' + nextSlot(slot);
+}
+
+function cancelarSelecao() {
+  selectedSlot = null;
+  document.getElementById('formCard').style.display = 'none';
+  document.querySelectorAll('.slot').forEach(s => s.classList.remove('selected-slot'));
+}
+
+/* ────────────────────────────────────────────────
+   CONFIRMAR RESERVA
+──────────────────────────────────────────────── */
+async function confirmarReserva() {
+  const casa    = document.getElementById('casaInput').value.trim();
+  const nome    = document.getElementById('nomeInput').value.trim();
+  const esporte = document.getElementById('esporteInput').value;
+
+  if (!casa || !nome) { toast('Preencha o número da casa e seu nome!', true); return; }
+  if (!selectedDate || !selectedSlot) { toast('Selecione data e horário!', true); return; }
+
+  const btn = document.getElementById('btnConfirmar');
+  btn.textContent = 'Verificando...';
+  btn.disabled = true;
+
+  try {
+    // Regra: reservas ativas por casa
+    const ativasCasa = await getReservas({ casa });
+    const today = dateToStr(new Date());
+    const ativasValidas = ativasCasa.filter(r => r.date >= today && !r.bloqueado);
+
+    if (ativasValidas.length >= CONFIG.MAX_RESERVAS_ATIVAS) {
+      const b = document.getElementById('infoBanner');
+      b.textContent = 'Casa ' + casa + ' já tem ' + CONFIG.MAX_RESERVAS_ATIVAS + ' reservas ativas. Cancele uma delas para poder fazer nova reserva.';
+      b.classList.add('show');
+      btn.textContent = '✓ Confirmar Reserva';
+      btn.disabled = false;
+      return;
+    }
+
+    // Regra: um bloco por dia por casa
+    const mesmoDia = ativasCasa.find(r => r.date === selectedDate);
+    if (mesmoDia) {
+      toast('Sua casa já tem uma reserva neste dia!', true);
+      btn.textContent = '✓ Confirmar Reserva';
+      btn.disabled = false;
+      return;
+    }
+
+    // Verifica se horário ainda está livre (race condition)
+    const reservasDia = await getReservas({ date: selectedDate });
+    const jaOcupado   = reservasDia.find(r => r.slot === selectedSlot);
+    if (jaOcupado) {
+      toast('Esse horário foi reservado agora mesmo! Escolha outro.', true);
+      await renderSlots();
+      cancelarSelecao();
+      btn.textContent = '✓ Confirmar Reserva';
+      btn.disabled = false;
+      return;
+    }
+
+    // Tudo OK — salva
+    await addReserva({
+      date:    selectedDate,
+      slot:    selectedSlot,
+      casa,
+      nome,
+      esporte,
+      bloqueado: false,
+      created: new Date().toISOString()
+    });
+
+    toast('Reserva confirmada com sucesso! 🎉');
+    document.getElementById('formCard').style.display = 'none';
+    selectedSlot = null;
+    await renderSlots();
+    await renderCalendar();
+
+  } catch(e) {
+    toast('Erro ao salvar. Tente novamente.', true);
+    console.error(e);
+  }
+
+  btn.textContent = '✓ Confirmar Reserva';
+  btn.disabled = false;
+}
+
+/* ────────────────────────────────────────────────
+   AGENDA
+──────────────────────────────────────────────── */
+async function renderAgenda() {
+  const list    = document.getElementById('agendaList');
+  const loading = document.getElementById('agendaLoading');
+
+  list.innerHTML = '';
+  loading.style.display = 'block';
+
+  const today   = dateToStr(new Date());
+  const todas   = await getReservas({ from: today });
+  const futuras = todas.filter(r => !r.bloqueado).sort((a, b) =>
+    a.date.localeCompare(b.date) || a.slot.localeCompare(b.slot)
+  );
+
+  loading.style.display = 'none';
+
+  if (!futuras.length) {
+    list.innerHTML = `
+      <div class="empty-state">
+        <div class="big">🏖️</div>
+        Nenhuma reserva ativa. A quadra está livre!
+      </div>`;
+    return;
+  }
+
+  list.innerHTML = futuras.map(r => `
+    <div class="res-item">
+      <div class="res-avatar">${r.nome.substring(0,2).toUpperCase()}</div>
+      <div class="res-info">
+        <div class="res-name">${r.nome} · Casa ${r.casa}</div>
+        <div class="res-detail">${strToLabel(r.date)}</div>
+        <div class="res-detail">${r.slot} – ${nextSlot(r.slot)} · ${r.esporte}</div>
+      </div>
+      <span class="res-badge">${r.slot}</span>
+    </div>
+  `).join('');
+}
+
+/* ────────────────────────────────────────────────
+   ADMIN
+──────────────────────────────────────────────── */
+function adminLogin() {
+  const pass = document.getElementById('adminPass').value;
+  if (pass === CONFIG.ADMIN_PASS) {
+    document.getElementById('adminLoginCard').style.display = 'none';
+    document.getElementById('adminPanel').style.display     = 'block';
+    popularBlockSlots();
+    renderAdmin();
+  } else {
+    toast('Senha incorreta!', true);
+  }
+}
+
+function adminLogout() {
+  document.getElementById('adminLoginCard').style.display = 'block';
+  document.getElementById('adminPanel').style.display     = 'none';
+  document.getElementById('adminPass').value = '';
+}
+
+function popularBlockSlots() {
+  const sel = document.getElementById('blockSlot');
+  CONFIG.SLOTS.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s;
+    opt.textContent = s + ' – ' + nextSlot(s);
+    sel.appendChild(opt);
+  });
+}
+
+async function renderAdmin() {
+  const list    = document.getElementById('adminList');
+  const loading = document.getElementById('adminLoading');
+
+  list.innerHTML = '';
+  loading.style.display = 'block';
+
+  const today  = dateToStr(new Date());
+  const todas  = await getReservas({ from: today });
+  const sorted = todas.sort((a, b) =>
+    a.date.localeCompare(b.date) || a.slot.localeCompare(b.slot)
+  );
+
+  loading.style.display = 'none';
+
+  if (!sorted.length) {
+    list.innerHTML = `<div class="empty-state"><div class="big">📭</div>Nenhuma reserva cadastrada.</div>`;
+    return;
+  }
+
+  list.innerHTML = sorted.map(r => `
+    <div class="res-item">
+      <div class="res-avatar" style="background:#2C3E50">
+        ${r.bloqueado ? '🔒' : r.nome.substring(0,2).toUpperCase()}
+      </div>
+      <div class="res-info">
+        <div class="res-name">${r.bloqueado ? 'BLOQUEADO' : r.nome + ' · Casa ' + r.casa}</div>
+        <div class="res-detail">${strToLabel(r.date)} · ${r.slot}–${nextSlot(r.slot)}</div>
+        ${!r.bloqueado ? `<div class="res-detail">${r.esporte}</div>` : ''}
+      </div>
+      <button class="cancel-btn" onclick="cancelarAdmin('${r.id}')">Excluir</button>
+    </div>
+  `).join('');
+}
+
+async function cancelarAdmin(id) {
+  if (!confirm('Confirma a exclusão desta reserva?')) return;
+  try {
+    await deleteReserva(id);
+    toast('Reserva excluída pelo administrador.');
+    renderAdmin();
+    if (selectedDate) renderSlots();
+    renderCalendar();
+  } catch(e) {
+    toast('Erro ao excluir.', true);
+  }
+}
+
+async function bloquearHorario() {
+  const date = document.getElementById('blockDate').value;
+  const slot = document.getElementById('blockSlot').value;
+
+  if (!date) { toast('Selecione uma data para bloquear.', true); return; }
+
+  const bloqueios = slot
+    ? [{ date, slot }]
+    : CONFIG.SLOTS.map(s => ({ date, slot: s }));
+
+  try {
+    for (const b of bloqueios) {
+      // Verifica se já existe
+      const existing = await getReservas({ date: b.date });
+      if (existing.find(r => r.slot === b.slot)) continue;
+      await addReserva({ ...b, nome: 'Bloqueado', casa: 'ADM', esporte: 'Manutenção', bloqueado: true, created: new Date().toISOString() });
+    }
+    toast('Horário(s) bloqueado(s) com sucesso!');
+    renderAdmin();
+    if (selectedDate === date) renderSlots();
+    renderCalendar();
+  } catch(e) {
+    toast('Erro ao bloquear.', true);
+    console.error(e);
+  }
+}
+
+/* ────────────────────────────────────────────────
+   INICIALIZAÇÃO
+──────────────────────────────────────────────── */
+renderCalendar();
+</script>
 </body>
 </html>
